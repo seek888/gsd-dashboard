@@ -1,8 +1,9 @@
 "use client";
 
-import { FileText, FolderOpen, ChevronRight } from "lucide-react";
-import { useState } from "react";
+import { FileText, FolderOpen, ChevronRight, X } from "lucide-react";
+import { useState, useCallback } from "react";
 import { cn } from "@/lib/utils";
+import { MarkdownRenderer } from "./MarkdownRenderer";
 
 interface FileNode {
   name: string;
@@ -16,7 +17,6 @@ interface FileExplorerProps {
   className?: string;
 }
 
-// Build tree from a flat list of file paths returned by API
 function buildTree(paths: string[]): FileNode[] {
   const root: FileNode[] = [];
   for (const p of paths) {
@@ -38,7 +38,6 @@ function buildTree(paths: string[]): FileNode[] {
       if (existing.children) current = existing.children;
     }
   }
-  // Sort: dirs first, then files, alphabetical within
   const sortNodes = (nodes: FileNode[]): FileNode[] => {
     return nodes.sort((a, b) => {
       if (a.type !== b.type) return a.type === "dir" ? -1 : 1;
@@ -56,14 +55,27 @@ function FileIcon({ name }: { name: string }) {
   return <FileText className="size-3.5 text-slate-400" />;
 }
 
-function TreeNode({ node, depth = 0 }: { node: FileNode; depth?: number }) {
-  const [expanded, setExpanded] = useState(depth < 2);
+function TreeNode({ node, depth = 0, onFileClick, activePath }: {
+  node: FileNode;
+  depth?: number;
+  onFileClick: (node: FileNode) => void;
+  activePath?: string;
+}) {
+  const [expanded, setExpanded] = useState(depth < 1);
   if (node.type === "file") {
+    const isActive = activePath === node.path;
     return (
-      <div className="flex items-center gap-2 rounded px-2 py-1 hover:bg-white/5" style={{ paddingLeft: `${depth * 16 + 8}px` }}>
+      <button
+        onClick={() => onFileClick(node)}
+        className={cn(
+          "flex w-full items-center gap-2 rounded px-2 py-1 text-left hover:bg-white/5",
+          isActive && "bg-sky-500/10 text-sky-300",
+        )}
+        style={{ paddingLeft: `${depth * 16 + 8}px` }}
+      >
         <FileIcon name={node.name} />
-        <span className="truncate text-xs text-slate-400">{node.name}</span>
-      </div>
+        <span className="truncate text-xs text-slate-400 group-hover:text-slate-300">{node.name}</span>
+      </button>
     );
   }
   return (
@@ -81,7 +93,7 @@ function TreeNode({ node, depth = 0 }: { node: FileNode; depth?: number }) {
         )}
       </button>
       {expanded && node.children?.map((child) => (
-        <TreeNode key={child.path} node={child} depth={depth + 1} />
+        <TreeNode key={child.path} node={child} depth={depth + 1} onFileClick={onFileClick} activePath={activePath} />
       ))}
     </div>
   );
@@ -90,8 +102,10 @@ function TreeNode({ node, depth = 0 }: { node: FileNode; depth?: number }) {
 export function FileExplorer({ projectName, className }: FileExplorerProps) {
   const [files, setFiles] = useState<FileNode[] | null>(null);
   const [loading, setLoading] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<{ node: FileNode; content: string; ext: string } | null>(null);
+  const [loadingFile, setLoadingFile] = useState(false);
 
-  async function loadFiles() {
+  const loadFiles = useCallback(async () => {
     setLoading(true);
     try {
       const res = await fetch(`/api/files?project=${projectName}`);
@@ -104,11 +118,27 @@ export function FileExplorer({ projectName, className }: FileExplorerProps) {
     } finally {
       setLoading(false);
     }
-  }
+  }, [projectName]);
 
   // Auto-load on mount
   if (!files && !loading) {
     loadFiles();
+  }
+
+  async function handleFileClick(node: FileNode) {
+    if (node.type !== "file") return;
+    setLoadingFile(true);
+    try {
+      const res = await fetch(`/api/file-content?project=${projectName}&path=${encodeURIComponent(node.path.replace(/^\//, ""))}`);
+      const data = await res.json();
+      if (data.content !== undefined) {
+        setSelectedFile({ node, content: data.content, ext: data.ext });
+      }
+    } catch {
+      // Silently ignore
+    } finally {
+      setLoadingFile(false);
+    }
   }
 
   return (
@@ -117,10 +147,38 @@ export function FileExplorer({ projectName, className }: FileExplorerProps) {
         <FolderOpen className="size-4 text-sky-400" />
         <h3 className="text-sm font-medium text-slate-200">Planning 文件</h3>
       </div>
+
+      {/* File viewer modal */}
+      {selectedFile && (
+        <div className="border-b border-white/5">
+          <div className="flex items-center justify-between border-b border-white/5 bg-slate-800/50 px-4 py-2">
+            <div className="flex items-center gap-2">
+              <FileIcon name={selectedFile.node.name} />
+              <span className="text-xs font-medium text-slate-300">{selectedFile.node.name}</span>
+              <span className="text-[10px] text-slate-600">{selectedFile.content.length} chars</span>
+            </div>
+            <button onClick={() => setSelectedFile(null)} className="text-slate-500 hover:text-slate-300">
+              <X className="size-3.5" />
+            </button>
+          </div>
+          <div className="max-h-64 overflow-y-auto p-3">
+            {selectedFile.ext === ".md" ? (
+              <div className="prose prose-sm prose-invert max-w-none">
+                <MarkdownRenderer content={selectedFile.content} />
+              </div>
+            ) : (
+              <pre className="overflow-x-auto text-xs text-slate-400">
+                <code>{selectedFile.content}</code>
+              </pre>
+            )}
+          </div>
+        </div>
+      )}
+
       <div className="max-h-80 overflow-y-auto p-2">
         {loading && <div className="px-3 py-4 text-center text-xs text-slate-500">加载中...</div>}
         {files?.map((node) => (
-          <TreeNode key={node.path} node={node} />
+          <TreeNode key={node.path} node={node} onFileClick={handleFileClick} activePath={selectedFile?.node.path} />
         ))}
         {!loading && files?.length === 0 && (
           <div className="px-3 py-4 text-center text-xs text-slate-500">无文件</div>
