@@ -1,11 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { AlertTriangle, FolderKanban, RefreshCw } from "lucide-react";
+import { AlertTriangle, FolderKanban, RefreshCw, Wifi, WifiOff, Zap } from "lucide-react";
+import Link from "next/link";
 import type { DashboardStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { useAutoRefresh } from "@/lib/hooks/use-stream";
 import { ActivityFeed } from "./ActivityFeed";
+import { BlockerAlertList } from "./BlockerAlertList";
 import { CommandPalette } from "./CommandPalette";
 import { FileExplorer } from "./FileExplorer";
 import { PhaseCard } from "./PhaseCard";
@@ -26,25 +29,27 @@ export function DashboardOverview({ initialStatus }: DashboardOverviewProps) {
   const activeProjectId = status.activeProject.id;
   const statusUrl = useMemo(() => `/api/status?project=${encodeURIComponent(activeProjectId)}`, [activeProjectId]);
 
-  useEffect(() => {
-    let disposed = false;
-
-    async function refresh() {
+  const doRefresh = useCallback(async () => {
+    try {
       const response = await fetch(statusUrl, { cache: "no-store" });
       if (!response.ok) return;
       const nextStatus = (await response.json()) as DashboardStatus;
-      if (!disposed) {
-        setStatus(nextStatus);
-        setLastUpdated(nextStatus.generatedAt);
-      }
-    }
-
-    const interval = window.setInterval(refresh, 5000);
-    return () => {
-      disposed = true;
-      window.clearInterval(interval);
-    };
+      setStatus(nextStatus);
+      setLastUpdated(nextStatus.generatedAt);
+    } catch { /* ignore */ }
   }, [statusUrl]);
+
+  // Auto-refresh: SSE + polling fallback
+  const { refreshKey, streamState, triggerRefresh } = useAutoRefresh({
+    projectId: activeProjectId,
+    intervalMs: 30000,
+    enabled: true,
+  });
+
+  // React to refreshKey changes (SSE or polling triggered)
+  useEffect(() => {
+    if (refreshKey > 0) doRefresh();
+  }, [refreshKey, doRefresh]);
 
   function selectProject(projectId: string) {
     const project = status.projects.find((item) => item.id === projectId);
@@ -88,6 +93,11 @@ export function DashboardOverview({ initialStatus }: DashboardOverviewProps) {
             ))}
           </select>
           <div className="inline-flex items-center gap-2 text-xs text-slate-500">
+            {streamState.connected ? (
+              <Wifi className="size-3.5 text-emerald-400" />
+            ) : (
+              <WifiOff className="size-3.5 text-slate-600" />
+            )}
             <RefreshCw className={cn("size-3.5", isPending && "animate-spin")} />
             {formatTime(lastUpdated)}
           </div>
@@ -97,6 +107,16 @@ export function DashboardOverview({ initialStatus }: DashboardOverviewProps) {
       <section className="grid gap-6 py-6 lg:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)]">
         <div className="space-y-6">
           <PhaseTimeline phases={status.phases} />
+
+          {/* Execute Page Link */}
+          <Link
+            href="/execute"
+            className="flex items-center gap-2 rounded-lg border border-sky-500/20 bg-sky-500/5 px-4 py-2.5 text-sm text-sky-400 transition hover:bg-sky-500/10"
+          >
+            <Zap className="size-4" />
+            <span>执行监控</span>
+            <span className="ml-auto text-[10px] text-slate-500">实时日志 + 命令队列</span>
+          </Link>
 
           <div className="flex items-center gap-6 rounded-lg border border-white/10 bg-slate-900/60 p-5">
             <ProgressRing
