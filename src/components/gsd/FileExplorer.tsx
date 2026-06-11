@@ -142,8 +142,8 @@ export function FileExplorer({ projectName, className }: FileExplorerProps) {
   }
 
   return (
-    <div className={cn("rounded-lg border border-white/10 bg-slate-900/60", className)}>
-      <div className="flex items-center gap-2 border-b border-white/5 px-4 py-3">
+    <div className={cn("w-full rounded-lg border border-white/10 bg-slate-900/60", className)}>
+      <div className="flex items-center gap-2 border-b border-white/5 px-3 sm:px-4 py-3">
         <FolderOpen className="size-4 text-sky-400" />
         <h3 className="text-sm font-medium text-slate-200">Planning 文件</h3>
       </div>
@@ -151,7 +151,7 @@ export function FileExplorer({ projectName, className }: FileExplorerProps) {
       {/* File viewer modal */}
       {selectedFile && (
         <div className="border-b border-white/5">
-          <div className="flex items-center justify-between border-b border-white/5 bg-slate-800/50 px-4 py-2">
+          <div className="flex items-center justify-between border-b border-white/5 bg-slate-800/50 px-3 sm:px-4 py-2">
             <div className="flex items-center gap-2">
               <FileIcon name={selectedFile.node.name} />
               <span className="text-xs font-medium text-slate-300">{selectedFile.node.name}</span>
@@ -161,7 +161,7 @@ export function FileExplorer({ projectName, className }: FileExplorerProps) {
               <X className="size-3.5" />
             </button>
           </div>
-          <div className="max-h-64 overflow-y-auto p-3">
+          <div className="max-h-48 sm:max-h-64 overflow-y-auto p-2 sm:p-3">
             {selectedFile.ext === ".md" ? (
               <div className="prose prose-sm prose-invert max-w-none">
                 <MarkdownRenderer content={selectedFile.content} />

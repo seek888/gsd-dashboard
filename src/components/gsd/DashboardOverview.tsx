@@ -104,6 +104,26 @@ export function DashboardOverview({ initialStatus }: DashboardOverviewProps) {
         </div>
       </div>
 
+      {/* Stats grid */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 py-4">
+        <div className="rounded-lg border border-white/10 bg-slate-900/60 p-4">
+          <div className="text-xs text-slate-500">Phase 总数</div>
+          <div className="mt-1 text-2xl font-semibold text-white">{status.phases.length}</div>
+        </div>
+        <div className="rounded-lg border border-white/10 bg-slate-900/60 p-4">
+          <div className="text-xs text-slate-500">完成进度</div>
+          <div className="mt-1 text-2xl font-semibold text-white">{status.progress.percent}%</div>
+        </div>
+        <div className="rounded-lg border border-white/10 bg-slate-900/60 p-4">
+          <div className="text-xs text-slate-500">阻塞项</div>
+          <div className="mt-1 text-2xl font-semibold text-white">{status.blockers.length}</div>
+        </div>
+        <div className="rounded-lg border border-white/10 bg-slate-900/60 p-4">
+          <div className="text-xs text-slate-500">总计划</div>
+          <div className="mt-1 text-2xl font-semibold text-white">{status.progress.totalPlans >= 0 ? `${status.progress.completedPlans}/${status.progress.totalPlans}` : "—"}</div>
+        </div>
+      </div>
+
       <section className="grid gap-6 py-6 lg:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)]">
         <div className="space-y-6">
           <PhaseTimeline phases={status.phases} />
@@ -118,13 +138,13 @@ export function DashboardOverview({ initialStatus }: DashboardOverviewProps) {
             <span className="ml-auto text-[10px] text-slate-500">实时日志 + 命令队列</span>
           </Link>
 
-          <div className="flex items-center gap-6 rounded-lg border border-white/10 bg-slate-900/60 p-5">
+          <div className="flex flex-col items-center gap-4 rounded-lg border border-white/10 bg-slate-900/60 p-4 sm:flex-row sm:p-5">
             <ProgressRing
               value={status.progress.percent}
-              size={100}
+              size={80}
               strokeWidth={6}
             />
-            <div className="min-w-0 flex-1">
+            <div className="min-w-0 flex-1 w-full">
               <ProgressBar
                 value={status.progress.percent}
                 completed={status.progress.completedPlans}

@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState, useCallback } from "react";
-import { ArrowLeft, BookOpenText, RefreshCw, Terminal, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
-import type { PhaseDetail } from "@/lib/types";
+import { ArrowLeft, BookOpenText, RefreshCw, Terminal, Loader2, CheckCircle2, AlertCircle, Activity, Clock } from "lucide-react";
+import type { PhaseDetail, ActivityItem } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { MarkdownRenderer } from "./MarkdownRenderer";
 import { PlanCard } from "./PlanCard";
@@ -48,7 +48,7 @@ export function PhaseDetailView({ initialPhase, projectId }: PhaseDetailViewProp
   }, [phaseUrl]);
 
   return (
-    <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+    <main className="mx-auto w-full max-w-7xl px-4 py-4 sm:px-6 sm:py-6 lg:px-8">
       <div className="border-b border-white/10 pb-6">
         <Link href={homeHref} className="inline-flex items-center gap-2 text-sm text-slate-400 transition hover:text-sky-200">
           <ArrowLeft className="size-4" />
@@ -60,7 +60,7 @@ export function PhaseDetailView({ initialPhase, projectId }: PhaseDetailViewProp
               <span className="font-mono text-sm text-slate-500">Phase {phase.number}</span>
               <span className={cn("rounded-md border px-2 py-0.5 text-xs", statusTone(phase.status))}>{statusLabel(phase.status)}</span>
             </div>
-            <h1 className="mt-3 text-3xl font-semibold text-white">{phase.title}</h1>
+            <h1 className="mt-2 sm:mt-3 text-2xl sm:text-3xl font-semibold text-white">{phase.title}</h1>
             {phase.goal ? <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-400">{phase.goal}</p> : null}
           </div>
           <div className="mt-4 flex flex-wrap items-center gap-2">
@@ -91,15 +91,23 @@ export function PhaseDetailView({ initialPhase, projectId }: PhaseDetailViewProp
         </div>
       </div>
 
-      <section className="grid gap-6 py-6 lg:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)]">
+      <section className="grid gap-4 sm:gap-6 py-4 sm:py-6 lg:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)]">
         <div className="space-y-6">
-          <div className="rounded-lg border border-white/10 bg-slate-900/60 p-5">
+          <div className="rounded-lg border border-white/10 bg-slate-900/60 p-4 sm:p-5">
             <ProgressBar value={phase.progress} completed={phase.completedPlans} total={phase.totalPlans} label="Phase 计划完成度" />
           </div>
 
           <section>
             <h2 className="mb-4 text-lg font-semibold text-white">Wave 依赖图</h2>
             <WaveDiagram waves={phase.waves} />
+          </section>
+
+          <section>
+            <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-white">
+              <Activity className="size-5 text-emerald-400" />
+              Phase 活动
+            </h2>
+            <PhaseActivities phaseNumber={phase.number} projectId={projectId} />
           </section>
 
           <section>
@@ -122,7 +130,7 @@ export function PhaseDetailView({ initialPhase, projectId }: PhaseDetailViewProp
                 ))}
               </div>
             ) : (
-              <div className="rounded-lg border border-white/10 bg-slate-900/60 p-5 text-sm text-slate-400">暂无 Plan 文件。</div>
+              <div className="rounded-lg border border-white/10 bg-slate-900/60 p-4 sm:p-5 text-sm text-slate-400">暂无 Plan 文件。</div>
             )}
           </section>
         </div>
@@ -151,12 +159,12 @@ export function PhaseDetailView({ initialPhase, projectId }: PhaseDetailViewProp
                   </button>
                 ))}
               </div>
-              <div className="rounded-lg border border-white/10 bg-slate-900/60 p-5">
+              <div className="rounded-lg border border-white/10 bg-slate-900/60 p-4 sm:p-5">
                 <MarkdownRenderer content={activeDocument?.content ?? ""} />
               </div>
             </>
           ) : (
-            <div className="rounded-lg border border-white/10 bg-slate-900/60 p-5 text-sm text-slate-400">
+            <div className="rounded-lg border border-white/10 bg-slate-900/60 p-4 sm:p-5 text-sm text-slate-400">
               未找到 CONTEXT / RESEARCH / UAT 文档。
             </div>
           )}
@@ -181,6 +189,85 @@ function formatTime(timestamp: string): string {
     minute: "2-digit",
     second: "2-digit",
   }).format(date);
+}
+
+// ── Phase Activities ──────────────────────────────────────────
+
+function PhaseActivities({ phaseNumber, projectId }: { phaseNumber: number; projectId?: string }) {
+  const [activities, setActivities] = useState<{ items: ActivityItem[] } | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let disposed = false;
+    async function load() {
+      try {
+        const suffix = projectId ? `?project=${encodeURIComponent(projectId)}` : "";
+        const res = await fetch(`/api/status${suffix}`, { cache: "no-store" });
+        if (!res.ok) return;
+        const data = await res.json();
+        const phaseActivities = (data.activities || []).filter(
+          (a: ActivityItem) => a.phaseNumber === phaseNumber
+        );
+        if (!disposed) setActivities({ items: phaseActivities });
+      } catch {
+        // ignore
+      } finally {
+        if (!disposed) setLoading(false);
+      }
+    }
+    load();
+  }, [phaseNumber, projectId]);
+
+  if (loading) {
+    return <div className="py-4 text-center text-sm text-slate-500">加载中...</div>;
+  }
+
+  if (!activities || activities.items.length === 0) {
+    return (
+      <div className="rounded-lg border border-white/10 bg-slate-900/60 p-4 sm:p-5 text-center">
+        <Activity className="mx-auto size-8 text-slate-700" />
+        <p className="mt-2 text-sm text-slate-500">该 Phase 暂无活动记录</p>
+        <p className="mt-1 text-xs text-slate-600">执行 Plan 后活动会自动记录</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative space-y-0">
+      {/* Timeline line */}
+      <div className="absolute left-[11px] top-2 bottom-2 w-px bg-white/10" />
+      {activities.items.map((item, i) => (
+        <div key={item.id || i} className="relative flex gap-3 px-2 py-2.5">
+          {/* Timeline dot */}
+          <div className={cn(
+            "z-10 mt-1.5 size-[9px] shrink-0 rounded-full border-2",
+            item.status === "complete" ? "border-emerald-400 bg-emerald-400" :
+            item.status === "in_progress" ? "border-sky-400 bg-sky-400" :
+            "border-slate-600 bg-slate-600"
+          )} />
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-white">{item.title}</span>
+              <span className={cn("rounded-md border px-1.5 py-0.5 text-[10px]", statusTone(item.status))}>
+                {statusLabel(item.status)}
+              </span>
+            </div>
+            <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-slate-500">
+              {item.timestamp && (
+                <span className="flex items-center gap-1">
+                  <Clock className="size-3" />
+                  {formatTime(item.timestamp)}
+                </span>
+              )}
+              {item.planNumber > 0 && (
+                <span>Plan {item.planNumber}</span>
+              )}
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
 }
 
 // ── Phase Action Button ────────────────────────────────────────

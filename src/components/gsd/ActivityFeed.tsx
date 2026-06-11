@@ -17,20 +17,21 @@ export function ActivityFeed({ activities }: ActivityFeedProps) {
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2 sm:space-y-3">
       {activities.map((activity) => (
-        <div key={activity.id} className="rounded-lg border border-white/10 bg-slate-900/60 p-4">
-          <div className="flex items-start gap-3">
+        <div key={activity.id} className="rounded-lg border border-white/10 bg-slate-900/60 p-3 sm:p-4">
+          <div className="flex items-start gap-2 sm:gap-3">
             <span className={cn("mt-1.5 size-2.5 shrink-0 rounded-full", statusDot(activity.status))} />
             <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
-                <span>Phase {activity.phaseNumber}</span>
-                <span>Plan {activity.planNumber}</span>
+              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs text-slate-500">
+                <span>P{activity.phaseNumber}</span>
+                <span className="hidden sm:inline">Plan</span>
+                <span>{activity.planNumber}</span>
                 <span>{statusLabel(activity.status)}</span>
               </div>
-              <div className="mt-1 text-sm font-medium text-slate-100">{activity.title}</div>
-              <div className="mt-2 flex items-center gap-1.5 text-xs text-slate-500">
-                <Clock3 className="size-3.5" />
+              <div className="mt-1 text-sm font-medium text-slate-100 line-clamp-2">{activity.title}</div>
+              <div className="mt-1.5 sm:mt-2 flex items-center gap-1.5 text-[11px] sm:text-xs text-slate-500">
+                <Clock3 className="size-3 sm:size-3.5" />
                 {formatTime(activity.timestamp)}
               </div>
             </div>

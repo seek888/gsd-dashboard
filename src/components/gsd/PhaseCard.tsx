@@ -16,12 +16,12 @@ export function PhaseCard({ phase, projectId }: PhaseCardProps) {
   return (
     <Link
       href={href}
-      className="group block rounded-lg border border-white/10 bg-slate-900/70 p-5 transition hover:border-sky-400/40 hover:bg-slate-900"
+      className="group block rounded-lg border border-white/10 bg-slate-900/70 p-4 sm:p-5 transition hover:border-sky-400/40 hover:bg-slate-900"
     >
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           <div className="text-xs font-medium uppercase tracking-[0.16em] text-slate-500">Phase {phase.number}</div>
-          <h2 className="mt-2 truncate text-lg font-semibold text-white">{phase.title}</h2>
+          <h2 className="mt-1 sm:mt-2 truncate text-base sm:text-lg font-semibold text-white">{phase.title}</h2>
         </div>
         <span className={cn("inline-flex shrink-0 items-center gap-1.5 rounded-md border px-2 py-1 text-xs", statusTone(phase.status))}>
           {statusIcon(phase.status)}
@@ -29,7 +29,7 @@ export function PhaseCard({ phase, projectId }: PhaseCardProps) {
         </span>
       </div>
 
-      {phase.goal ? <p className="mt-3 line-clamp-2 text-sm leading-6 text-slate-400">{phase.goal}</p> : null}
+      {phase.goal ? <p className="mt-2 sm:mt-3 line-clamp-2 text-sm leading-6 text-slate-400">{phase.goal}</p> : null}
 
       <ProgressBar
         value={phase.progress}

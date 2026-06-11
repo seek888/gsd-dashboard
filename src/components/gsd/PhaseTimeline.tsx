@@ -15,7 +15,7 @@ export function PhaseTimeline({ phases }: PhaseTimelineProps) {
   ).length;
 
   return (
-    <section className="rounded-lg border border-white/10 bg-slate-900/60 p-5">
+    <section className="rounded-lg border border-white/10 bg-slate-900/60 p-4 sm:p-5">
       <div className="flex items-center justify-between gap-4">
         <div className="text-sm font-medium text-slate-200">项目进度</div>
         <div className="text-xs text-slate-500">
@@ -24,19 +24,19 @@ export function PhaseTimeline({ phases }: PhaseTimelineProps) {
       </div>
 
       {/* Timeline bar */}
-      <div className="mt-4 flex items-stretch gap-1">
+      <div className="mt-3 sm:mt-4 flex items-stretch gap-0.5 sm:gap-1">
         {phases.map((phase, i) => (
           <div key={phase.number} className="group relative flex-1">
             {/* Bar segment */}
             <div
               className={cn(
-                "h-8 rounded-sm transition-colors",
+                "h-6 sm:h-8 rounded-sm transition-colors",
                 phaseStatusBg(phase.status),
               )}
               title={`Phase ${phase.number}: ${phase.title} — ${phase.status}`}
             />
-            {/* Tooltip on hover */}
-            <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 -translate-x-1/2 whitespace-nowrap rounded-md border border-white/10 bg-slate-950 px-3 py-2 text-xs opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
+            {/* Tooltip on hover - hidden on mobile */}
+            <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 -translate-x-1/2 hidden sm:block whitespace-nowrap rounded-md border border-white/10 bg-slate-950 px-3 py-2 text-xs opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
               <div className="font-medium text-white">{phase.title}</div>
               <div className="mt-1 flex items-center gap-1.5 text-slate-400">
                 {statusIcon(phase.status)}
@@ -53,10 +53,10 @@ export function PhaseTimeline({ phases }: PhaseTimelineProps) {
       </div>
 
       {/* Phase numbers */}
-      <div className="mt-2 flex gap-1">
+      <div className="mt-1.5 sm:mt-2 flex gap-0.5 sm:gap-1">
         {phases.map((phase) => (
           <div key={phase.number} className="flex-1 text-center">
-            <span className="font-mono text-[10px] text-slate-600">{phase.number}</span>
+            <span className="font-mono text-[9px] sm:text-[10px] text-slate-600">{phase.number}</span>
           </div>
         ))}
       </div>
