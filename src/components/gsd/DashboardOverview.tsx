@@ -6,8 +6,11 @@ import { AlertTriangle, FolderKanban, RefreshCw } from "lucide-react";
 import type { DashboardStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { ActivityFeed } from "./ActivityFeed";
+import { FileExplorer } from "./FileExplorer";
 import { PhaseCard } from "./PhaseCard";
+import { PhaseTimeline } from "./PhaseTimeline";
 import { ProgressBar } from "./ProgressBar";
+import { ProgressRing } from "./ProgressRing";
 import { statusLabel, statusTone } from "./status";
 
 interface DashboardOverviewProps {
@@ -89,13 +92,22 @@ export function DashboardOverview({ initialStatus }: DashboardOverviewProps) {
 
       <section className="grid gap-6 py-6 lg:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)]">
         <div className="space-y-6">
-          <div className="rounded-lg border border-white/10 bg-slate-900/60 p-5">
-            <ProgressBar
+          <PhaseTimeline phases={status.phases} />
+
+          <div className="flex items-center gap-6 rounded-lg border border-white/10 bg-slate-900/60 p-5">
+            <ProgressRing
               value={status.progress.percent}
-              completed={status.progress.completedPlans}
-              total={status.progress.totalPlans}
-              label={status.progress.label ?? "总体完成度"}
+              size={100}
+              strokeWidth={6}
             />
+            <div className="min-w-0 flex-1">
+              <ProgressBar
+                value={status.progress.percent}
+                completed={status.progress.completedPlans}
+                total={status.progress.totalPlans}
+                label={status.progress.label ?? "总体完成度"}
+              />
+            </div>
           </div>
 
           <div>
@@ -135,6 +147,7 @@ export function DashboardOverview({ initialStatus }: DashboardOverviewProps) {
           </section>
 
           <section>
+            <FileExplorer projectName={activeProjectId} className="mb-6" />
             <h2 className="mb-4 text-lg font-semibold text-white">最近活动</h2>
             <ActivityFeed activities={status.activities} />
           </section>
