@@ -33,13 +33,15 @@ export function useStream({ projectId, onFileChange, fallbackInterval = 30000, e
     eventCount: 0,
   });
   const onFileChangeRef = useRef(onFileChange);
-  onFileChangeRef.current = onFileChange;
+  useEffect(() => {
+    onFileChangeRef.current = onFileChange;
+  });
 
   // SSE connection
   useEffect(() => {
     if (!projectId || !enabled) return;
 
-    let abortController = new AbortController();
+    const abortController = new AbortController();
     let reconnectTimer: ReturnType<typeof setTimeout>;
 
     function connect() {
@@ -96,43 +98,37 @@ interface UseAutoRefreshOptions {
   projectId: string | undefined;
   intervalMs?: number;
   enabled?: boolean;
+  onRefresh?: () => void;
 }
 
-export function useAutoRefresh({ projectId, intervalMs = 30000, enabled = true }: UseAutoRefreshOptions) {
-  const [refreshKey, setRefreshKey] = useState(0);
-  const [streamState, setStreamState] = useState<StreamState>({
-    connected: false,
-    lastEvent: null,
-    eventCount: 0,
+export function useAutoRefresh({ projectId, intervalMs = 30000, enabled = true, onRefresh }: UseAutoRefreshOptions) {
+  const onRefreshRef = useRef(onRefresh);
+  useEffect(() => {
+    onRefreshRef.current = onRefresh;
   });
 
   const triggerRefresh = useCallback(() => {
-    setRefreshKey((k) => k + 1);
+    onRefreshRef.current?.();
   }, []);
 
   // SSE-driven refresh
   const onFileChange = useCallback(() => {
-    // Debounce: don't refresh more than once per 2 seconds
     triggerRefresh();
   }, [triggerRefresh]);
 
-  const stream = useStream({
+  const streamState = useStream({
     projectId,
     onFileChange,
     enabled,
   });
 
-  useEffect(() => {
-    setStreamState(stream);
-  }, [stream.connected, stream.eventCount]);
-
   // Fallback polling
   useEffect(() => {
-    if (!projectId || !enabled || stream.connected) return;
+    if (!projectId || !enabled || streamState.connected) return;
 
     const timer = setInterval(triggerRefresh, intervalMs);
     return () => clearInterval(timer);
-  }, [projectId, enabled, intervalMs, stream.connected, triggerRefresh]);
+  }, [projectId, enabled, intervalMs, streamState.connected, triggerRefresh]);
 
-  return { refreshKey, streamState, triggerRefresh };
+  return { streamState, triggerRefresh };
 }

@@ -40,16 +40,12 @@ export function DashboardOverview({ initialStatus }: DashboardOverviewProps) {
   }, [statusUrl]);
 
   // Auto-refresh: SSE + polling fallback
-  const { refreshKey, streamState, triggerRefresh } = useAutoRefresh({
+  const { streamState } = useAutoRefresh({
     projectId: activeProjectId,
     intervalMs: 30000,
     enabled: true,
+    onRefresh: doRefresh,
   });
-
-  // React to refreshKey changes (SSE or polling triggered)
-  useEffect(() => {
-    if (refreshKey > 0) doRefresh();
-  }, [refreshKey, doRefresh]);
 
   function selectProject(projectId: string) {
     const project = status.projects.find((item) => item.id === projectId);

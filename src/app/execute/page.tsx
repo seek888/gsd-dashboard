@@ -74,16 +74,17 @@ interface ExecuteStreamErrorEvent {
   timestamp: number;
 }
 
+function getProjectIdFromUrl(): string {
+  if (typeof window === "undefined") return "default";
+  return new URLSearchParams(window.location.search).get("project") ?? "default";
+}
+
 export default function ExecutePage() {
-  const [projectId, setProjectId] = useState("default");
+  const [projectId] = useState(getProjectIdFromUrl);
   const [execState, setExecState] = useState<ExecutionState>(INITIAL_STATE);
   const [queue, setQueue] = useState<GsdCommandId[]>([]);
   const timerRef = useRef<ReturnType<typeof setInterval>>(undefined);
   const eventSourceRef = useRef<EventSource | null>(null);
-
-  useEffect(() => {
-    setProjectId(new URLSearchParams(window.location.search).get("project") ?? "default");
-  }, []);
 
   useEffect(() => {
     return () => {

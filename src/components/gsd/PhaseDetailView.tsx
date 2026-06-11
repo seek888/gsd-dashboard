@@ -216,7 +216,7 @@ function PhaseActivities({ phaseNumber, projectId }: { phaseNumber: number; proj
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    let disposed = false;
+    const disposed = false;
     async function load() {
       try {
         const suffix = projectId ? `?project=${encodeURIComponent(projectId)}` : "";
