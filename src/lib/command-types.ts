@@ -11,7 +11,11 @@ export type GsdCommandId =
   | "find-phase"
   | "init"
   | "verify-summary"
-  | "generate-slug";
+  | "generate-slug"
+  | "execute-phase"
+  | "execute-plan"
+  | "advance-wave"
+  | "verify-work";
 
 export interface GsdCommand {
   id: GsdCommandId;
@@ -36,4 +40,8 @@ export const GSD_COMMANDS: GsdCommand[] = [
   { id: "init", label: "初始化项目", description: "gsd-tools init — 初始化 GSD 项目配置", args: ["init"], isWrite: true, category: "admin" },
   { id: "verify-summary", label: "验证摘要", description: "gsd-tools verify-summary — 验证 SUMMARY.md 质量", args: ["verify-summary"], isWrite: false, category: "read" },
   { id: "generate-slug", label: "生成 Slug", description: "gsd-tools generate-slug — 生成 URL 友好的 slug", args: ["generate-slug"], isWrite: false, category: "read" },
+  { id: "execute-phase", label: "执行 Phase", description: "开始执行指定 Phase", args: ["execute", "phase"], isWrite: true, category: "write" },
+  { id: "execute-plan", label: "执行 Plan", description: "开始执行指定 Plan", args: ["execute", "plan"], isWrite: true, category: "write" },
+  { id: "advance-wave", label: "推进 Wave", description: "推进到下一个 Wave", args: ["wave", "advance"], isWrite: true, category: "write" },
+  { id: "verify-work", label: "验证工作", description: "验证当前工作完成情况", args: ["verify"], isWrite: true, category: "write" },
 ];

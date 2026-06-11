@@ -1,6 +1,6 @@
 // ── Blocker Detection & Alerting ──────────────────────────────
 
-import type { DashboardStatus } from "./types";
+import type { DashboardStatus, PhaseDetail, PlanItem } from "./types";
 
 export interface BlockerAlert {
   id: string;
@@ -97,19 +97,74 @@ export function detectBlockers(status: DashboardStatus): BlockerAlert[] {
 /**
  * Wave auto-advance: detect if all plans in current wave are complete
  */
-export function detectWaveCompletion(status: DashboardStatus): { phase: number; wave: number; canAdvance: boolean } | null {
-  // Find the first in-progress phase
-  const activePhase = status.phases.find((p) => p.status === "in_progress");
+export interface WaveCompletion {
+  phase: number;
+  wave: number;
+  canAdvance: boolean;
+  nextWave?: number;
+  nextPlan?: number;
+  reason?: string;
+}
+
+export function detectWaveCompletion(status: DashboardStatus, phaseDetail?: PhaseDetail | null): WaveCompletion | null {
+  const activePhase =
+    (status.state.currentPhase
+      ? status.phases.find((p) => p.number === status.state.currentPhase)
+      : undefined) ?? status.phases.find((p) => p.status === "in_progress");
   if (!activePhase) return null;
 
-  // Check if all plans are completed
+  if (phaseDetail?.waves.length) {
+    const waves = [...phaseDetail.waves].sort((a, b) => a.wave - b.wave);
+    let previousCompleteWave: number | null = null;
+
+    for (const wave of waves) {
+      const waveComplete = wave.plans.length > 0 && wave.plans.every(isPlanComplete);
+      if (waveComplete) {
+        previousCompleteWave = wave.wave;
+        continue;
+      }
+
+      if (previousCompleteWave !== null) {
+        const nextPlan = wave.plans.find((plan) => !isPlanComplete(plan));
+        return {
+          phase: phaseDetail.number,
+          wave: previousCompleteWave,
+          canAdvance: Boolean(nextPlan),
+          nextWave: wave.wave,
+          nextPlan: nextPlan?.number,
+          reason: nextPlan ? "上一 Wave 已完成，可以推进到下一 Wave" : "下一 Wave 没有可执行 Plan",
+        };
+      }
+
+      return {
+        phase: phaseDetail.number,
+        wave: wave.wave,
+        canAdvance: false,
+        reason: "当前 Wave 尚未全部完成",
+      };
+    }
+
+    return {
+      phase: phaseDetail.number,
+      wave: waves[waves.length - 1]?.wave ?? 1,
+      canAdvance: false,
+      reason: "Phase 内所有 Wave 已完成",
+    };
+  }
+
+  // 没有 Phase 详情时保留旧的阶段级兜底判断。
   if (activePhase.totalPlans > 0 && activePhase.completedPlans === activePhase.totalPlans) {
     return {
       phase: activePhase.number,
-      wave: 1, // simplified - would need wave-level tracking
+      wave: 1,
       canAdvance: true,
+      reason: "Phase 计划已全部完成",
     };
   }
 
   return null;
+}
+
+function isPlanComplete(plan: PlanItem): boolean {
+  return plan.status === "complete" || plan.status === "completed";
 }

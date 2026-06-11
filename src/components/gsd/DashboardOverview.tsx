@@ -130,7 +130,7 @@ export function DashboardOverview({ initialStatus }: DashboardOverviewProps) {
 
           {/* Execute Page Link */}
           <Link
-            href="/execute"
+            href={`/execute?project=${encodeURIComponent(status.activeProject.id)}`}
             className="flex items-center gap-2 rounded-lg border border-sky-500/20 bg-sky-500/5 px-4 py-2.5 text-sm text-sky-400 transition hover:bg-sky-500/10"
           >
             <Zap className="size-4" />

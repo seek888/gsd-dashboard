@@ -61,14 +61,35 @@ export function CommandPalette({ projectId, onCommandComplete }: CommandPaletteP
   const executeCommand = useCallback(async (cmdId: GsdCommandId, args?: string[]) => {
     setExecState({ loading: true, commandId: cmdId, result: null });
     try {
-      const res = await fetch("/api/command", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ commandId: cmdId, projectId, extraArgs: args || [] }),
-      });
+      const command = GSD_COMMANDS.find((item) => item.id === cmdId);
+      const res = command?.isWrite
+        ? await fetch("/api/execute", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              action: "start",
+              command: cmdId,
+              projectId,
+              args: args || [],
+              confirmed: true,
+            }),
+          })
+        : await fetch("/api/command", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ commandId: cmdId, projectId, extraArgs: args || [] }),
+          });
       const data = await res.json();
-      setExecState({ loading: false, commandId: cmdId, result: data });
-      onCommandComplete?.(cmdId, data.success);
+      const result = command?.isWrite
+        ? {
+            success: res.ok && Boolean(data.execution),
+            stdout: data.execution ? `执行已启动: ${data.execution.executionId}` : "",
+            stderr: data.error || "",
+            durationMs: data.execution?.durationMs ?? 0,
+          }
+        : data;
+      setExecState({ loading: false, commandId: cmdId, result });
+      onCommandComplete?.(cmdId, result.success);
     } catch (err) {
       setExecState({
         loading: false,

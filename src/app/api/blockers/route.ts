@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getDashboardStatus } from "@/lib/gsd-bridge";
+import { getDashboardStatus, getPhaseDetail } from "@/lib/gsd-bridge";
 import { detectBlockers, detectWaveCompletion } from "@/lib/blocker-detector";
 
 export async function GET(request: Request) {
@@ -12,7 +12,10 @@ export async function GET(request: Request) {
   try {
     const status = await getDashboardStatus(project);
     const blockers = detectBlockers(status);
-    const waveCompletion = detectWaveCompletion(status);
+    const activePhaseNumber =
+      status.state.currentPhase ?? status.phases.find((phase) => phase.status === "in_progress")?.number;
+    const phaseDetail = activePhaseNumber ? await getPhaseDetail(activePhaseNumber, project) : null;
+    const waveCompletion = detectWaveCompletion(status, phaseDetail);
 
     return NextResponse.json({
       blockers,

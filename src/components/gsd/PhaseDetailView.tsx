@@ -10,6 +10,7 @@ import { PlanCard } from "./PlanCard";
 import { ProgressBar } from "./ProgressBar";
 import { statusLabel, statusTone } from "./status";
 import { WaveDiagram } from "./WaveDiagram";
+import { GSD_COMMANDS, type GsdCommandId } from "@/lib/command-types";
 
 interface PhaseDetailViewProps {
   initialPhase: PhaseDetail;
@@ -26,6 +27,14 @@ export function PhaseDetailView({ initialPhase, projectId }: PhaseDetailViewProp
   }, [initialPhase.number, projectId]);
   const homeHref = `/${projectId ? `?project=${encodeURIComponent(projectId)}` : ""}`;
   const activeDocument = phase.documents.find((doc) => doc.path === activeDoc) ?? phase.documents[0];
+  const refreshPhase = useCallback(async () => {
+    const response = await fetch(phaseUrl, { cache: "no-store" });
+    if (!response.ok) return;
+    const nextPhase = (await response.json()) as PhaseDetail;
+    setPhase(nextPhase);
+    setLastUpdated(new Date().toISOString());
+  }, [phaseUrl]);
+  const phaseExecuteLabel = phase.status === "in_progress" ? "继续执行" : "开始执行";
 
   useEffect(() => {
     let disposed = false;
@@ -67,15 +76,24 @@ export function PhaseDetailView({ initialPhase, projectId }: PhaseDetailViewProp
             <PhaseActionButton
               projectId={projectId}
               phaseNumber={phase.number}
+              commandId="execute-phase"
+              label={phaseExecuteLabel}
+              extraArgs={[String(phase.number)]}
+              onDone={refreshPhase}
+            />
+            <PhaseActionButton
+              projectId={projectId}
+              phaseNumber={phase.number}
+              commandId="verify-work"
+              label="验证工作"
+              onDone={refreshPhase}
+            />
+            <PhaseActionButton
+              projectId={projectId}
+              phaseNumber={phase.number}
               commandId="health"
               label="健康检查"
-              onDone={() => {
-                // Trigger a refresh after command completes
-                fetch(phaseUrl, { cache: "no-store" }).then(r => r.json()).then((data: PhaseDetail) => {
-                  setPhase(data);
-                  setLastUpdated(new Date().toISOString());
-                });
-              }}
+              onDone={refreshPhase}
             />
             <PhaseActionButton
               projectId={projectId}
@@ -274,15 +292,16 @@ function PhaseActivities({ phaseNumber, projectId }: { phaseNumber: number; proj
 
 function PhaseActionButton({
   projectId,
-  phaseNumber,
   commandId,
   label,
+  extraArgs = [],
   onDone,
 }: {
   projectId?: string;
   phaseNumber: number;
-  commandId: string;
+  commandId: GsdCommandId;
   label: string;
+  extraArgs?: string[];
   onDone?: () => void;
 }) {
   const [loading, setLoading] = useState(false);
@@ -290,16 +309,32 @@ function PhaseActionButton({
 
   const handleClick = useCallback(async () => {
     if (!projectId || loading) return;
+    const command = GSD_COMMANDS.find((item) => item.id === commandId);
+    if (!command) return;
+    if (command.isWrite && !window.confirm(`确认执行写操作「${command.label}」？`)) return;
+
     setLoading(true);
     setResult(null);
     try {
-      const res = await fetch("/api/command", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ commandId, projectId, extraArgs: [] }),
-      });
+      const res = command.isWrite
+        ? await fetch("/api/execute", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              action: "start",
+              command: commandId,
+              projectId,
+              args: extraArgs,
+              confirmed: true,
+            }),
+          })
+        : await fetch("/api/command", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ commandId, projectId, extraArgs }),
+          });
       const data = await res.json();
-      setResult({ success: data.success });
+      setResult({ success: res.ok && (command.isWrite ? Boolean(data.execution) : Boolean(data.success)) });
       onDone?.();
     } catch {
       setResult({ success: false });
@@ -307,7 +342,7 @@ function PhaseActionButton({
       setLoading(false);
       setTimeout(() => setResult(null), 3000);
     }
-  }, [projectId, commandId, loading, onDone]);
+  }, [projectId, commandId, extraArgs, loading, onDone]);
 
   return (
     <button
