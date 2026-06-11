@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, BookOpenText, RefreshCw } from "lucide-react";
+import { useEffect, useMemo, useState, useCallback } from "react";
+import { ArrowLeft, BookOpenText, RefreshCw, Terminal, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import type { PhaseDetail } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { MarkdownRenderer } from "./MarkdownRenderer";
@@ -62,6 +62,27 @@ export function PhaseDetailView({ initialPhase, projectId }: PhaseDetailViewProp
             </div>
             <h1 className="mt-3 text-3xl font-semibold text-white">{phase.title}</h1>
             {phase.goal ? <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-400">{phase.goal}</p> : null}
+          </div>
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            <PhaseActionButton
+              projectId={projectId}
+              phaseNumber={phase.number}
+              commandId="health"
+              label="健康检查"
+              onDone={() => {
+                // Trigger a refresh after command completes
+                fetch(phaseUrl, { cache: "no-store" }).then(r => r.json()).then((data: PhaseDetail) => {
+                  setPhase(data);
+                  setLastUpdated(new Date().toISOString());
+                });
+              }}
+            />
+            <PhaseActionButton
+              projectId={projectId}
+              phaseNumber={phase.number}
+              commandId="list-todos"
+              label="查看待办"
+            />
           </div>
           <div className="inline-flex items-center gap-2 text-xs text-slate-500">
             <RefreshCw className="size-3.5" />
@@ -160,4 +181,70 @@ function formatTime(timestamp: string): string {
     minute: "2-digit",
     second: "2-digit",
   }).format(date);
+}
+
+// ── Phase Action Button ────────────────────────────────────────
+
+function PhaseActionButton({
+  projectId,
+  phaseNumber,
+  commandId,
+  label,
+  onDone,
+}: {
+  projectId?: string;
+  phaseNumber: number;
+  commandId: string;
+  label: string;
+  onDone?: () => void;
+}) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<{ success: boolean } | null>(null);
+
+  const handleClick = useCallback(async () => {
+    if (!projectId || loading) return;
+    setLoading(true);
+    setResult(null);
+    try {
+      const res = await fetch("/api/command", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ commandId, projectId, extraArgs: [] }),
+      });
+      const data = await res.json();
+      setResult({ success: data.success });
+      onDone?.();
+    } catch {
+      setResult({ success: false });
+    } finally {
+      setLoading(false);
+      setTimeout(() => setResult(null), 3000);
+    }
+  }, [projectId, commandId, loading, onDone]);
+
+  return (
+    <button
+      onClick={handleClick}
+      disabled={loading || !projectId}
+      className={cn(
+        "inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium transition-colors",
+        result?.success
+          ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
+          : result?.success === false
+            ? "border-rose-500/30 bg-rose-500/10 text-rose-400"
+            : "border-white/10 bg-slate-800/50 text-slate-300 hover:bg-slate-700/50 hover:text-white",
+      )}
+    >
+      {loading ? (
+        <Loader2 className="size-3.5 animate-spin" />
+      ) : result?.success ? (
+        <CheckCircle2 className="size-3.5" />
+      ) : result?.success === false ? (
+        <AlertCircle className="size-3.5" />
+      ) : (
+        <Terminal className="size-3.5" />
+      )}
+      {label}
+    </button>
+  );
 }

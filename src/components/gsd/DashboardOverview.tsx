@@ -6,6 +6,7 @@ import { AlertTriangle, FolderKanban, RefreshCw } from "lucide-react";
 import type { DashboardStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { ActivityFeed } from "./ActivityFeed";
+import { CommandPalette } from "./CommandPalette";
 import { FileExplorer } from "./FileExplorer";
 import { PhaseCard } from "./PhaseCard";
 import { PhaseTimeline } from "./PhaseTimeline";
@@ -64,6 +65,9 @@ export function DashboardOverview({ initialStatus }: DashboardOverviewProps) {
             <span className={cn("rounded-md border px-2 py-0.5 text-xs", statusTone(status.state.status))}>{statusLabel(status.state.status)}</span>
           </div>
           <h1 className="mt-3 text-3xl font-semibold tracking-normal text-white">{status.project.name}</h1>
+          <div className="mt-2">
+            <CommandPalette projectId={activeProjectId} />
+          </div>
           <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-400">{status.project.description}</p>
         </div>
 
