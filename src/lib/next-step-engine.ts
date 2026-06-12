@@ -1,4 +1,4 @@
-import type { GsdStatus, DashboardStatus } from "./types";
+import type { DashboardStatus } from "./types";
 import type { GsdCommandId } from "./command-types";
 
 // ── Next Step Suggestion ──────────────────────────────────────

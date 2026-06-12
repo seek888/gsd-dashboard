@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 
 // ── Types ─────────────────────────────────────────────────────
 
@@ -48,10 +48,21 @@ export function useApi<T>(url: string | null, options: UseApiOptions = {}) {
   }, [url, cache]);
 
   useEffect(() => {
-    if (auto && url) {
-      execute();
-    }
-  }, [auto, url, execute]);
+    if (!auto || !url) return;
+    let cancelled = false;
+    (async () => {
+      const result = await fetch(url, { cache });
+      if (cancelled) return;
+      if (!result.ok) {
+        const errBody = await result.json().catch(() => null);
+        setState({ data: null, error: errBody?.error || `HTTP ${result.status}`, loading: false });
+        return;
+      }
+      const data = await result.json();
+      setState({ data, error: null, loading: false });
+    })();
+    return () => { cancelled = true; };
+  }, [auto, url, cache]);
 
   return { ...state, refetch: execute };
 }

@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { CheckCircle2, ChevronRight, Loader2, Sparkles, Zap } from "lucide-react";
 import type { DashboardStatus } from "@/lib/types";
-import { getPrimaryNextStep, suggestNextSteps, type NextStepSuggestion } from "@/lib/next-step-engine";
+import { getPrimaryNextStep, suggestNextSteps } from "@/lib/next-step-engine";
 import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
 
@@ -23,37 +23,20 @@ const TONE_STYLES: Record<string, { border: string; bg: string; text: string; ic
 };
 
 export function NextStepCard({ status, onExecuted }: NextStepCardProps) {
-  const primary = getPrimaryNextStep(status);
-  const allSteps = suggestNextSteps(status);
+  // All hooks must be called before any early returns
   const [executing, setExecuting] = useState(false);
   const [showAll, setShowAll] = useState(false);
   const { toast } = useToast();
 
-  if (!primary) return null;
-
-  // 已完成状态特殊渲染
-  if (primary.category === "complete") {
-    return (
-      <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-4">
-        <div className="flex items-center gap-3">
-          <CheckCircle2 className="size-5 text-emerald-400" />
-          <div>
-            <div className="text-sm font-medium text-emerald-300">{primary.title}</div>
-            <div className="text-xs text-emerald-400/60">{primary.description}</div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  const tone = TONE_STYLES[primary.tone] ?? TONE_STYLES.slate;
+  const primary = getPrimaryNextStep(status);
+  const allSteps = suggestNextSteps(status);
+  const tone = TONE_STYLES[primary?.tone ?? "slate"] ?? TONE_STYLES.slate;
 
   const handleExecute = useCallback(async () => {
-    if (executing) return;
+    if (!primary || executing) return;
     setExecuting(true);
 
     try {
-      // 读命令走 /api/command
       if (primary.category === "review") {
         const res = await fetch("/api/command", {
           method: "POST",
@@ -71,7 +54,6 @@ export function NextStepCard({ status, onExecuted }: NextStepCardProps) {
           toast({ type: "error", title: `${primary.title} 失败`, description: data.error || "未知错误" });
         }
       } else {
-        // 写命令走 /api/execute
         const res = await fetch("/api/execute", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -99,10 +81,26 @@ export function NextStepCard({ status, onExecuted }: NextStepCardProps) {
       toast({ type: "error", title: "请求失败", description: err instanceof Error ? err.message : String(err) });
     } finally {
       setExecuting(false);
-      // 延迟刷新，给后端执行时间
       setTimeout(() => onExecuted?.(), 1500);
     }
   }, [primary, executing, status.activeProject.id, toast, onExecuted]);
+
+  // Early returns after all hooks
+  if (!primary) return null;
+
+  if (primary.category === "complete") {
+    return (
+      <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-4">
+        <div className="flex items-center gap-3">
+          <CheckCircle2 className="size-5 text-emerald-400" />
+          <div>
+            <div className="text-sm font-medium text-emerald-300">{primary.title}</div>
+            <div className="text-xs text-emerald-400/60">{primary.description}</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={cn("rounded-lg border p-4", tone.border, tone.bg)}>
@@ -147,7 +145,6 @@ export function NextStepCard({ status, onExecuted }: NextStepCardProps) {
             )}
           </div>
 
-          {/* 展开所有建议 */}
           {showAll && allSteps.length > 1 && (
             <div className="mt-3 space-y-2 border-t border-white/5 pt-3">
               {allSteps.slice(1).map((step) => {

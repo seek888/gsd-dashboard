@@ -64,7 +64,7 @@ export function useBrowserNotifications() {
       // 页面不可见 → 浏览器通知
       let title = "";
       let body = "";
-      let icon = "";
+      const icon = "";
 
       switch (event.type) {
         case "execution-complete":

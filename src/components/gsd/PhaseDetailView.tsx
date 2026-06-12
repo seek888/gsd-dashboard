@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { ArrowLeft, CheckCircle2, RefreshCw, Terminal, Loader2, AlertCircle, Activity, Clock, BookOpenText, LayoutList, FileText, ActivitySquare } from "lucide-react";
+import { ArrowLeft, CheckCircle2, RefreshCw, Terminal, Loader2, AlertCircle, Activity, Clock, BookOpenText, LayoutList, ActivitySquare } from "lucide-react";
 import Link from "next/link";
 import type { PhaseDetail, ActivityItem } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -37,8 +37,6 @@ export function PhaseDetailView({ initialPhase, projectId }: PhaseDetailViewProp
   const [activeDoc, setActiveDoc] = useState(initialPhase.documents[0]?.path ?? "");
   const [lastUpdated, setLastUpdated] = useState(new Date().toISOString());
   const [activeTab, setActiveTab] = useState<PhaseTab>("overview");
-  const { showDialog, ConfirmDialogSlot } = useConfirmDialog();
-  const { toast } = useToast();
 
   const phaseUrl = `/api/phases/${initialPhase.number}${projectId ? `?project=${encodeURIComponent(projectId)}` : ""}`;
   const homeHref = `/${projectId ? `?project=${encodeURIComponent(projectId)}` : ""}`;
@@ -71,7 +69,6 @@ export function PhaseDetailView({ initialPhase, projectId }: PhaseDetailViewProp
 
   return (
     <main className="mx-auto w-full max-w-7xl px-4 py-4 sm:px-6 sm:py-6 lg:px-8">
-      {ConfirmDialogSlot()}
 
       {/* Header */}
       <div className="border-b border-white/10 pb-4">
@@ -132,7 +129,6 @@ export function PhaseDetailView({ initialPhase, projectId }: PhaseDetailViewProp
         {activeTab === "docs" && (
           <DocsTab
             phase={phase}
-            activeDoc={activeDoc}
             activeDocument={activeDocument}
             onDocChange={setActiveDoc}
           />
@@ -206,9 +202,8 @@ function PlansTab({ phase }: { phase: PhaseDetail }) {
 
 // ── Docs Tab ──────────────────────────────────────────────────
 
-function DocsTab({ phase, activeDoc, activeDocument, onDocChange }: {
+function DocsTab({ phase, activeDocument, onDocChange }: {
   phase: PhaseDetail;
-  activeDoc: string;
   activeDocument: PhaseDetail["documents"][0] | undefined;
   onDocChange: (path: string) => void;
 }) {
@@ -289,6 +284,7 @@ function PhaseActivities({ phaseNumber, projectId }: { phaseNumber: number; proj
       }
     }
     load();
+    return () => { disposed = true; };
   }, [phaseNumber, projectId]);
 
   if (loading) {

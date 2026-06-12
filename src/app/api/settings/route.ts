@@ -138,7 +138,7 @@ export async function PUT(request: Request) {
     // 检查是否有 .planning 目录
     const planningPath = path.join(resolvedPath, ".planning");
     let hasPlanning = false;
-    let planningInfo: Record<string, unknown> = {};
+    const planningInfo: Record<string, unknown> = {};
     try {
       const planningStat = await fs.stat(planningPath);
       hasPlanning = planningStat.isDirectory();
