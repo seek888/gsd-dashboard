@@ -358,7 +358,20 @@ async function readAllPhases(projectRoot: string): Promise<PhaseDetail[]> {
 
 async function readPhaseDetail(projectRoot: string, overview: PhaseOverview): Promise<PhaseDetail | null> {
   const phasePath = overview.path;
-  if (!phasePath) return null;
+
+  // Phase 没有文件系统目录（来自 ROADMAP 但没有实际 phase 文件夹）
+  // 仍然返回基本详情页，使用 ROADMAP 中的数据
+  if (!phasePath) {
+    return {
+      ...overview,
+      plans: [],
+      waves: [],
+      documents: [],
+      completedPlans: 0,
+      totalPlans: 0,
+      progress: overview.status === "complete" ? 100 : 0,
+    };
+  }
 
   const entries = await fs.readdir(phasePath, { withFileTypes: true }).catch(() => []);
   if (entries.length === 0) return null;
