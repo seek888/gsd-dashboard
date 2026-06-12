@@ -17,20 +17,30 @@ export async function readMarkdownFile<T extends Record<string, unknown> = Recor
     if ((error as NodeJS.ErrnoException).code === "ENOENT") {
       return null;
     }
-
-    throw error;
+    // YAML parse error or other — treat as empty
+    console.warn(`[gsd] Failed to parse ${filePath}:`, error instanceof Error ? error.message : error);
+    return null;
   }
 }
 
 export function parseMarkdown<T extends Record<string, unknown> = Record<string, unknown>>(
   raw: string,
 ): ParsedMarkdown<T> {
-  const parsed = matter(raw, { excerpt: true });
-  return {
-    data: parsed.data as T,
-    content: parsed.content.trim(),
-    excerpt: typeof parsed.excerpt === "string" ? parsed.excerpt.trim() : undefined,
-  };
+  try {
+    const parsed = matter(raw, { excerpt: true });
+    return {
+      data: parsed.data as T,
+      content: parsed.content.trim(),
+      excerpt: typeof parsed.excerpt === "string" ? parsed.excerpt.trim() : undefined,
+    };
+  } catch (err) {
+    // YAML parse error — fall back to treating the whole file as content
+    const content = raw.replace(/^---[\s\S]*?---\s*/, "").trim();
+    return {
+      data: {} as T,
+      content,
+    };
+  }
 }
 
 export function asString(value: unknown, fallback = ""): string {
