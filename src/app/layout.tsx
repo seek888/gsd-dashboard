@@ -3,6 +3,7 @@ import Link from "next/link";
 import { FolderKanban, LayoutDashboard, Zap, Settings } from "lucide-react";
 import { getConfiguredProjects } from "@/lib/gsd-bridge";
 import { MobileNav } from "@/components/gsd/MobileNav";
+import { ToastProvider } from "@/components/ui/toast";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -20,6 +21,7 @@ export default async function RootLayout({
   return (
     <html lang="zh-CN" className="h-full dark">
       <body className="min-h-full bg-background text-foreground antialiased">
+        <ToastProvider>
         <div className="min-h-screen bg-[#0f172a] text-slate-100 lg:grid lg:grid-cols-[280px_minmax(0,1fr)]">
           {/* Mobile nav */}
           <MobileNav projects={projects} />
@@ -86,6 +88,7 @@ export default async function RootLayout({
           </aside>
           <div className="min-w-0">{children}</div>
         </div>
+        </ToastProvider>
       </body>
     </html>
   );

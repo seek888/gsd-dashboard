@@ -11,10 +11,12 @@ import { ActivityFeed } from "./ActivityFeed";
 import { BlockerAlertList } from "./BlockerAlertList";
 import { CommandPalette } from "./CommandPalette";
 import { FileExplorer } from "./FileExplorer";
+import { NextStepCard } from "./NextStepCard";
 import { PhaseCard } from "./PhaseCard";
 import { PhaseTimeline } from "./PhaseTimeline";
 import { ProgressBar } from "./ProgressBar";
 import { ProgressRing } from "./ProgressRing";
+import { WaveAdvancePrompt } from "./WaveAdvancePrompt";
 import { statusLabel, statusTone } from "./status";
 
 interface DashboardOverviewProps {
@@ -98,6 +100,16 @@ export function DashboardOverview({ initialStatus }: DashboardOverviewProps) {
             {formatTime(lastUpdated)}
           </div>
         </div>
+      </div>
+
+      {/* Next Step Card */}
+      <div className="mt-4">
+        <NextStepCard status={status} onExecuted={doRefresh} />
+      </div>
+
+      {/* Wave Advance Prompt */}
+      <div className="mt-3">
+        <WaveAdvancePrompt status={status} onAdvanced={doRefresh} />
       </div>
 
       {/* Stats grid */}
